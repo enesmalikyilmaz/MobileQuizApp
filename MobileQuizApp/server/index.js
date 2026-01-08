@@ -9,6 +9,9 @@ const { connectDb } = require("./db");
 
 const authRoutes = require("./routes/auth");
 const meRoutes = require("./routes/me");
+const quizzesRoutes = require("./routes/quizzes");
+const Quiz = require("./models/Quiz");
+
 
 const app = express();
 app.use(cors());
@@ -20,6 +23,7 @@ app.get("/health", (req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/me", meRoutes);
+app.use("/quizzes", quizzesRoutes);
 
 const server = http.createServer(app);
 
@@ -27,7 +31,7 @@ const io = new Server(server, {
     cors: { origin: "*" },
 });
 
-const { demo } = require("./quizzes");
+const { demo } = require("./routes/quizzes");
 
 const rooms = new Map();
 // roomCode -> {
@@ -40,14 +44,26 @@ const rooms = new Map();
 io.on("connection", (socket) => {
     console.log("connected", socket.id);
 
-    socket.on("joinRoom", ({ roomCode, name }) => {
+    socket.on("joinRoom", ({ roomCode, name,quizId }) => {
         if (!roomCode || !name) return;
 
         socket.join(roomCode);
 
-        if (!rooms.has(roomCode)) rooms.set(roomCode, { players: [] });
+        if (!rooms.has(roomCode)) {
+            rooms.set(roomCode, {
+                players: [],
+                scores: {},
+                started: false,
+                qIndex: 0,
+                hostId: socket.id,
+                answers: {},
+                questions: []
+            });
+        }
 
         const room = rooms.get(roomCode);
+        if (quizId) room.quizId = quizId;
+
 
         // Aynı socket aynı odaya tekrar eklenmesin
         room.players = room.players.filter((p) => p.id !== socket.id);
@@ -56,7 +72,11 @@ io.on("connection", (socket) => {
         room.scores = room.scores || {};
         if (room.scores[socket.id] === undefined) room.scores[socket.id] = 0;
 
-        io.to(roomCode).emit("playersUpdate", room.players);
+        io.to(roomCode).emit("playersUpdate", {
+            players: room.players,
+            hostId: room.hostId
+        });
+        io.to(roomCode).emit("scoreUpdate", buildScoreList(room));
     });
 
     socket.on("leaveRoom", ({ roomCode }) => {
@@ -71,11 +91,19 @@ io.on("connection", (socket) => {
         io.to(roomCode).emit("playersUpdate", room.players);
     });
 
-    socket.on("startGame", ({ roomCode }) => {
+    socket.on("startGame", async ({ roomCode }) => {
         if (!roomCode) return;
 
         const room = rooms.get(roomCode);
         if (!room) return;
+        if (!room.quizId) return;
+
+        const quiz = await Quiz.findById(room.quizId);
+        if (!quiz || !quiz.questions || quiz.questions.length === 0) return;
+
+        // DB'yi her soru için tekrar çağırmamak için
+        room.questions = quiz.questions;
+
 
         room.started = true;
         room.qIndex = 0;
@@ -85,16 +113,21 @@ io.on("connection", (socket) => {
         room.players.forEach(p => {
             if (room.scores[p.id] === undefined) room.scores[p.id] = 0;
         });
+        room.answers = {};
+
 
         // ilk soruyu yolla
-        const q = demo[room.qIndex];
+        const q = room.questions[room.qIndex];
+        if (!q) return;
+
+
         io.to(roomCode).emit("gameStarted", { total: demo.length });
         io.to(roomCode).emit("question", {
             id: q.id,
             text: q.text,
             choices: q.choices,
             index: room.qIndex + 1,
-            total: demo.length,
+            total: room.questions.length,
         });
 
         // skor yayınla
@@ -107,8 +140,17 @@ io.on("connection", (socket) => {
         const room = rooms.get(roomCode);
         if (!room || !room.started) return;
 
-        const q = demo[room.qIndex];
-        if (!q || q.id !== questionId) return;
+        room.answers = room.answers || {};
+
+        if (room.answers[socket.id] === questionId) {
+            return; // bu soru için zaten cevap vermiş
+        }
+
+        room.answers[socket.id] = questionId;
+
+
+        const q = room.questions?.[room.qIndex];
+        if (String(room.qIndex) !== String(questionId)) return;
 
         // doğruysa +10 puan
         if (choiceIndex === q.answerIndex) {
@@ -126,19 +168,23 @@ io.on("connection", (socket) => {
 
         room.qIndex++;
 
-        if (room.qIndex >= demo.length) {
+        if (room.qIndex >= room.questions.length) {
             room.started = false;
             io.to(roomCode).emit("gameFinished", { scores: buildScoreList(room) });
             return;
         }
 
-        const q = demo[room.qIndex];
+
+        room.answers = {};
+
+
+        const q = room.questions[room.qIndex];
         io.to(roomCode).emit("question", {
             id: q.id,
             text: q.text,
             choices: q.choices,
             index: room.qIndex + 1,
-            total: demo.length,
+            total: room.questions.length
         });
     });
 
@@ -155,7 +201,7 @@ io.on("connection", (socket) => {
 }); 
 
 function buildScoreList(room) {
-    const list = room.players.map(p => ({
+    const list = (room.players || []).map(p => ({
         id: p.id,
         name: p.name,
         score: room.scores?.[p.id] || 0,
