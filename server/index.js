@@ -62,7 +62,7 @@ io.on("connection", (socket) => {
         }
 
         const room = rooms.get(roomCode);
-        if (quizId) room.quizId = quizId;
+        if (!room.quizId && quizId) room.quizId = quizId;
 
 
         // Aynı socket aynı odaya tekrar eklenmesin
@@ -88,7 +88,11 @@ io.on("connection", (socket) => {
         if (!room) return;
 
         room.players = room.players.filter((p) => p.id !== socket.id);
-        io.to(roomCode).emit("playersUpdate", room.players);
+        io.to(roomCode).emit("playersUpdate", {
+            players: room.players,
+            hostId: room.hostId
+        });
+
     });
 
     socket.on("startGame", async ({ roomCode }) => {
@@ -96,7 +100,6 @@ io.on("connection", (socket) => {
 
         const room = rooms.get(roomCode);
         if (!room) return;
-        if (!room.quizId) return;
 
         const quiz = await Quiz.findById(room.quizId);
         if (!quiz || !quiz.questions || quiz.questions.length === 0) return;
@@ -121,7 +124,7 @@ io.on("connection", (socket) => {
         if (!q) return;
 
 
-        io.to(roomCode).emit("gameStarted", { total: demo.length });
+        io.to(roomCode).emit("gameStarted", { total: room.questions.length });
         io.to(roomCode).emit("question", {
             id: q.id,
             text: q.text,
@@ -150,7 +153,10 @@ io.on("connection", (socket) => {
 
 
         const q = room.questions?.[room.qIndex];
-        if (String(room.qIndex) !== String(questionId)) return;
+        if (!q) return;
+
+        if (String(q.id) !== String(questionId)) return;
+
 
         // doğruysa +10 puan
         if (choiceIndex === q.answerIndex) {
@@ -194,7 +200,10 @@ io.on("connection", (socket) => {
             const before = room.players.length;
             room.players = room.players.filter((p) => p.id !== socket.id);
             if (room.players.length !== before) {
-                io.to(code).emit("playersUpdate", room.players);
+                io.to(code).emit("playersUpdate", {
+                    players: room.players,
+                    hostId: room.hostId
+                });
             }
         }
     });
