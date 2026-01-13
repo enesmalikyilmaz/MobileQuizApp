@@ -5,7 +5,21 @@ const UserSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true },
         email: { type: String, required: true, unique: true, lowercase: true, trim: true },
         passwordHash: { type: String, required: true },
-        totalScore: { type: Number, default: 0 },
+
+        isAdmin: { type: Boolean, default: false },
+
+
+        city: { type: String, default: "" },
+        country: { type: String, default: "" },
+        avatarUrl: { type: String, default: "" },
+
+        stats: {
+            totalGames: { type: Number, default: 0 },
+            totalScore: { type: Number, default: 0 },
+            bestScore: { type: Number, default: 0 },
+        },
+
+        achievements: [{ type: String }],
     },
     { timestamps: true }
 );

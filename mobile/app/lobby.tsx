@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { connectSocket, disconnectSocket } from "../src/services/socket";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
+import { postJson } from "../src/services/api";
+
 
 
 export default function Lobby() {
@@ -57,12 +59,20 @@ export default function Lobby() {
         const onPlayersUpdate = (payload: any) => {
             setPlayers(payload.players);
             setHostId(payload.hostId);
+            
         };
-        const onGameStarted = () => {
-            const rc = (roomCodeRef.current || "").trim();
+        const onErrorMsg = (payload: any) => {
+            setMsg(payload?.message || "Bir hata oluştu.");
+        };
+        const onGameStarted = (payload: any) => {
+            const rc = (payload?.roomCode || roomCodeRef.current || "").trim();
+            const hId = payload?.hostId || "";
+
             if (!rc) return;
-            router.push(`/game?room=${encodeURIComponent(rc)}`);
+
+            router.push(`/game?room=${encodeURIComponent(rc)}&hostId=${encodeURIComponent(hId)}`);
         };
+
 
 
 
@@ -70,6 +80,8 @@ export default function Lobby() {
         s.on("disconnect", onDisconnect);
         s.on("playersUpdate", onPlayersUpdate);
         s.on("gameStarted", onGameStarted);
+        s.on("errorMsg", onErrorMsg);
+
 
 
         return () => {
@@ -77,6 +89,7 @@ export default function Lobby() {
             s.off("disconnect", onDisconnect);
             s.off("playersUpdate", onPlayersUpdate);
             s.off("gameStarted", onGameStarted);
+            s.off("errorMsg", onErrorMsg);
             disconnectSocket();
         };
     }, []);
@@ -114,6 +127,21 @@ export default function Lobby() {
         s.emit("startGame", { roomCode: rc });
     };
 
+    const createRoom = async () => {
+        try {
+            setMsg("");
+
+            const data = await postJson<{ roomCode: string }>("/rooms/create", {});
+            setRoomCode(data.roomCode);
+
+            setMsg("✅ Oda oluşturuldu: " + data.roomCode);
+        } catch (e: any) {
+            setMsg("Oda oluşturulamadı: " + (e?.message || String(e)));
+        }
+    };
+
+
+
     return (
         <View style={{ flex: 1, padding: 24, justifyContent: "center", backgroundColor: "white" }}>
             <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>Lobby</Text>
@@ -125,6 +153,13 @@ export default function Lobby() {
             <Text style={{ fontSize: 12, marginBottom: 8 }}>
                 QuizId: {quizId ? "✅ seçildi" : "❌ yok"}
             </Text>
+
+            <Pressable
+                onPress={createRoom}
+                style={{ padding: 12, backgroundColor: "#16a34a", borderRadius: 8, marginBottom: 10 }}
+            >
+                <Text style={{ color: "white", textAlign: "center" }}>Oda Oluştur</Text>
+            </Pressable>
 
 
             <TextInput

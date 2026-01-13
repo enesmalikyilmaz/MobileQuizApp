@@ -3,18 +3,29 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import { connectSocket } from "../src/services/socket";
 
-type Q = { id: string; text: string; choices: string[]; index: number; total: number };
+type Q = {
+    id: string;
+    text: string;
+    choices: string[];
+    index: number;
+    total: number;
+    seconds?: number; // server gönderiyor: 30
+};
+
 type ScoreItem = { id: string; name: string; score: number };
 
 export default function Game() {
     const params = useLocalSearchParams();
     const room = (params.room as string) || "";
+    const hostId = (params.hostId as string) || "";
 
     const [answered, setAnswered] = useState(false);
     const [question, setQuestion] = useState<Q | null>(null);
     const [scores, setScores] = useState<ScoreItem[]>([]);
     const [msg, setMsg] = useState("");
-    const [timeLeft, setTimeLeft] = useState(15);
+    const [timeLeft, setTimeLeft] = useState(30);
+
+    const [mySocketId, setMySocketId] = useState<string>("");
 
     // Timer: her saniye düş
     useEffect(() => {
@@ -26,25 +37,32 @@ export default function Game() {
         return () => clearTimeout(t);
     }, [timeLeft, question, answered]);
 
-    // Süre bittiğinde kilitle
+    // Süre bittiğinde server'a bildir ve kilitle
     useEffect(() => {
         if (!question) return;
 
-        if (timeLeft <= 0) {
+        if (timeLeft <= 0 && !answered) {
             setAnswered(true);
             setMsg("⏰ Süre bitti!");
+
+            // server'a timeUp gönder (elenme kuralı için)
+            const s = connectSocket();
+            s.emit("timeUp", { roomCode: room, questionId: question.id });
         }
-    }, [timeLeft, question]);
+    }, [timeLeft, question, answered, room]);
 
     // Socket eventleri
     useEffect(() => {
         const s = connectSocket();
+        setMySocketId(s.id || "");
 
         const onQuestion = (q: any) => {
             setQuestion(q);
             setMsg("");
             setAnswered(false);
-            setTimeLeft(15);
+
+            const secs = typeof q?.seconds === "number" ? q.seconds : 30;
+            setTimeLeft(secs);
         };
 
         const onScoreUpdate = (list: any[]) => setScores(list);
@@ -57,14 +75,26 @@ export default function Game() {
             router.replace(url);
         };
 
+        const onErrorMsg = (p: any) => setMsg(p?.message || "Hata oluştu");
+
+        // Server yanlışta/süre dolunca bunu yolluyor
+        const onEliminated = (p: any) => {
+            setAnswered(true);
+            setMsg(p?.message || "Elendin.");
+        };
+
         s.on("question", onQuestion);
         s.on("scoreUpdate", onScoreUpdate);
         s.on("gameFinished", onFinished);
+        s.on("errorMsg", onErrorMsg);
+        s.on("eliminated", onEliminated);
 
         return () => {
             s.off("question", onQuestion);
             s.off("scoreUpdate", onScoreUpdate);
             s.off("gameFinished", onFinished);
+            s.off("errorMsg", onErrorMsg);
+            s.off("eliminated", onEliminated);
         };
     }, [room]);
 
@@ -88,6 +118,8 @@ export default function Game() {
         const s = connectSocket();
         s.emit("nextQuestion", { roomCode: room });
     };
+
+    const isHost = hostId && mySocketId && hostId === mySocketId;
 
     return (
         <View style={{ flex: 1, padding: 24, backgroundColor: "white" }}>
@@ -127,12 +159,14 @@ export default function Game() {
 
                     {!!msg && <Text style={{ marginTop: 6 }}>{msg}</Text>}
 
-                    <Pressable
-                        onPress={next}
-                        style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8, marginTop: 10 }}
-                    >
-                        <Text style={{ color: "white", textAlign: "center" }}>Sonraki Soru (Host)</Text>
-                    </Pressable>
+                    {isHost && (
+                        <Pressable
+                            onPress={next}
+                            style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8, marginTop: 10 }}
+                        >
+                            <Text style={{ color: "white", textAlign: "center" }}>Sonraki Soru (Host)</Text>
+                        </Pressable>
+                    )}
                 </View>
             ) : (
                 <Text>Henüz soru gelmedi... (Host başlatınca gelir)</Text>
@@ -141,7 +175,9 @@ export default function Game() {
             <View style={{ marginTop: 10 }}>
                 <Text style={{ fontWeight: "700", marginBottom: 6 }}>Skorlar</Text>
                 {scores.map((s) => (
-                    <Text key={s.id}>• {s.name}: {s.score}</Text>
+                    <Text key={s.id}>
+                        • {s.name}: {s.score}
+                    </Text>
                 ))}
             </View>
 
