@@ -4,6 +4,8 @@ import { connectSocket, disconnectSocket } from "../src/services/socket";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { postJson } from "../src/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 
 
@@ -16,7 +18,7 @@ export default function Lobby() {
     const [hostId, setHostId] = useState<string | null>(null);
     const params = useLocalSearchParams();
     const quizId = (params.quizId as string) || "";
-    const [mySocketId, setMySocketId] = useState<string | null>(null);
+    const [mySocketId, setMySocketId] = useState("");
 
 
     const roomCodeRef = useRef(roomCode);
@@ -36,24 +38,22 @@ export default function Lobby() {
     useEffect(() => {
         const s = connectSocket();
 
-        const onConnect = () => {
+        const onConnect = async () => {
             setConnected(true);
-            setMySocketId(s.id);
+            setMySocketId(s.id ?? "");
 
             const rc = (roomCodeRef.current || "").trim();
             const nm = (nameRef.current || "").trim();
+            if (!rc || !nm || !joinedOnceRef.current) return;
 
-            if (rc && nm && joinedOnceRef.current) {
-                if (rc && nm && joinedOnceRef.current) {
-                    s.emit("joinRoom", {
-                        roomCode: rc,
-                        name: nm,
-                        quizId: quizId || null
-                    });
-                }
+            const token = await AsyncStorage.getItem("token");
 
-            }
-
+            s.emit("joinRoom", {
+                roomCode: rc,
+                name: nm,
+                quizId: quizId || null,
+                token: token || null,
+            });
         };
         const onDisconnect = () => setConnected(false);
         const onPlayersUpdate = (payload: any) => {
@@ -66,12 +66,14 @@ export default function Lobby() {
         };
         const onGameStarted = (payload: any) => {
             const rc = (payload?.roomCode || roomCodeRef.current || "").trim();
-            const hId = payload?.hostId || "";
+            const hid = (payload?.hostId || "").trim();
 
             if (!rc) return;
 
-            router.push(`/game?room=${encodeURIComponent(rc)}&hostId=${encodeURIComponent(hId)}`);
+            // hostId'yi querystring ile Game ekranına taşıma işlemi:
+            router.push(`/game?room=${encodeURIComponent(rc)}&hostId=${encodeURIComponent(hid)}`);
         };
+
 
 
 
@@ -94,21 +96,26 @@ export default function Lobby() {
         };
     }, []);
 
-    const join = () => {
+    const join = async () => {
         if (!roomCode.trim() || !name.trim()) {
             setMsg("Oda kodu ve isim boş olamaz.");
             return;
         }
         setMsg("");
+
+        const token = await AsyncStorage.getItem("token");
+
         const s = connectSocket();
         s.emit("joinRoom", {
             roomCode: roomCode.trim(),
             name: name.trim(),
-            quizId: quizId || null
+            quizId: quizId || null,
+            token: token || null,
         });
-        joinedOnceRef.current = true;
 
+        joinedOnceRef.current = true;
     };
+
 
     const leave = () => {
         const s = connectSocket();
@@ -119,6 +126,11 @@ export default function Lobby() {
     const startGame = () => {
         const rc = roomCode.trim();
         if (!rc) return;
+
+        if (!hostId || !mySocketId || hostId !== mySocketId) {
+            setMsg("❌ Sen host değilsin. Oyunu sadece host başlatabilir.");
+            return;
+        }
 
         const s = connectSocket();
         console.log("START GAME EMIT ->", { roomCode: rc, quizId });

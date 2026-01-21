@@ -1,4 +1,4 @@
-const express = require("express");
+ï»¿const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -21,7 +21,7 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({ message: "name/email/password zorunlu" });
 
         const exists = await User.findOne({ email: email.toLowerCase() });
-        if (exists) return res.status(409).json({ message: "Bu email zaten kayıtlı" });
+        if (exists) return res.status(409).json({ message: "Bu email zaten kayÄ±tlÄ±" });
 
         const passwordHash = await bcrypt.hash(password, 10);
         const user = await User.create({ name, email, passwordHash });
@@ -44,10 +44,10 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ message: "email/password zorunlu" });
 
         const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) return res.status(401).json({ message: "Email veya şifre hatalı" });
+        if (!user) return res.status(401).json({ message: "Email veya ÅŸifre hatalÄ±" });
 
         const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return res.status(401).json({ message: "Email veya şifre hatalı" });
+        if (!ok) return res.status(401).json({ message: "Email veya ÅŸifre hatalÄ±" });
 
         return res.json({
             user: { id: user._id, name: user.name, email: user.email },

@@ -5,24 +5,57 @@ const { adminRequired } = require("../middleware/admin");
 
 const router = express.Router();
 
-// 🔓 GET /quizzes -> herkes görebilir
+// GET /quizzes?category=Bilim
 router.get("/", async (req, res) => {
-    const list = await Quiz.find(
-        {},
-        { title: 1, description: 1, category: 1 }
-    ).sort({ createdAt: -1 });
+    const { category } = req.query;
+
+    const filter = {};
+    if (category && String(category).trim()) {
+        filter.category = String(category).trim();
+    }
+
+    const list = await Quiz.find(filter, { title: 1, description: 1, category: 1 })
+        .sort({ createdAt: -1 });
 
     res.json(list);
 });
 
-// 🔓 GET /quizzes/:id -> herkes görebilir
+
+//  GET /quizzes/:id -> herkes görebilir
 router.get("/:id", async (req, res) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     res.json(quiz);
 });
 
-// 🔐 POST /quizzes -> SADECE ADMIN
+router.put("/:id", authRequired, adminRequired, async (req, res) => {
+    try {
+        const { title, description, category, questions } = req.body;
+
+        const patch = {};
+        if (title !== undefined) patch.title = String(title).trim();
+        if (description !== undefined) patch.description = description;
+        if (category !== undefined) patch.category = String(category).trim();
+
+        if (questions !== undefined) {
+            if (!Array.isArray(questions) || questions.length === 0) {
+                return res.status(400).json({ message: "questions array olmalı ve boş olamaz" });
+            }
+            patch.questions = questions;
+        }
+
+        const quiz = await Quiz.findByIdAndUpdate(req.params.id, patch, { new: true });
+        if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+
+        res.json({ ok: true, quiz });
+    } catch (err) {
+        console.error("quiz update error:", err);
+        res.status(500).json({ message: "quiz update error" });
+    }
+});
+
+
+//  POST /quizzes -> SADECE ADMIN
 router.post("/", authRequired, adminRequired, async (req, res) => {
     try {
         const { title, description, category, questions } = req.body;
@@ -33,7 +66,7 @@ router.post("/", authRequired, adminRequired, async (req, res) => {
 
         for (const q of questions) {
             if (!q.text || !Array.isArray(q.choices) || q.choices.length < 2) {
-                return res.status(400).json({ message: "Soru formatı hatalı" });
+                return res.status(400).json({ message: "Soru formatı hatalı (text/choices)" });
             }
             if (typeof q.answerIndex !== "number") {
                 return res.status(400).json({ message: "answerIndex zorunlu" });
@@ -44,9 +77,9 @@ router.post("/", authRequired, adminRequired, async (req, res) => {
         }
 
         const quiz = await Quiz.create({
-            title,
+            title: title.trim(),
             description: description || "",
-            category: category || "Genel",
+            category: (category || "Genel").trim(),
             questions,
         });
 
@@ -57,7 +90,7 @@ router.post("/", authRequired, adminRequired, async (req, res) => {
     }
 });
 
-// 🔐 POST /quizzes/seed/demo -> SADECE ADMIN
+//  POST /quizzes/seed/demo -> SADECE ADMIN
 router.post("/seed/demo", authRequired, adminRequired, async (req, res) => {
     const exists = await Quiz.findOne({ title: "Demo Quiz" });
     if (exists) {
@@ -95,5 +128,19 @@ router.post("/seed/demo", authRequired, adminRequired, async (req, res) => {
 
     res.json({ ok: true, id: demo._id });
 });
+
+//DELETE /quizzes/:id -> SADECE ADMIN
+router.delete("/:id", authRequired, adminRequired, async (req, res) => {
+    try {
+        const quiz = await Quiz.findByIdAndDelete(req.params.id);
+        if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+        res.json({ ok: true });
+    } catch (err) {
+        console.error("quiz delete error:", err);
+        res.status(500).json({ message: "quiz delete error" });
+    }
+});
+
+
 
 module.exports = router;

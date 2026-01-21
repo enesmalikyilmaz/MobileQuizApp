@@ -1,4 +1,4 @@
-import { Stack, router, usePathname } from "expo-router";
+ï»¿import { Stack, router, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { View, ActivityIndicator } from "react-native";
@@ -24,7 +24,7 @@ export default function RootLayout() {
         };
 
         boot();
-        // sadece ilk açýlýþta çalýþsýn
+        // sadece ilk aÃ§Ä±lÄ±ÅŸta Ã§alÄ±ÅŸsÄ±n
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable } from "react-native";
+ï»¿import { View, Text, TextInput, Pressable } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,7 +18,7 @@ export default function Login() {
             });
 
             await AsyncStorage.setItem("token", data.token);
-            router.replace("/(tabs)");
+            router.replace("/(tabs)/profile");
         } catch (e: any) {
             setMsg("Hata: " + (e.message || e));
         }
@@ -39,7 +39,7 @@ export default function Login() {
             <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Þifre"
+                placeholder="Åžifre"
                 secureTextEntry
                 style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 10 }}
             />
@@ -47,11 +47,11 @@ export default function Login() {
             {!!msg && <Text style={{ color: "red", marginBottom: 10 }}>{msg}</Text>}
 
             <Pressable onPress={onLogin} style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8 }}>
-                <Text style={{ color: "white", textAlign: "center" }}>Giriþ Yap</Text>
+                <Text style={{ color: "white", textAlign: "center" }}>GiriÅŸ Yap</Text>
             </Pressable>
 
             <Pressable onPress={() => router.push("/register")} style={{ padding: 12, marginTop: 10 }}>
-                <Text style={{ textAlign: "center" }}>Kayýt ol</Text>
+                <Text style={{ textAlign: "center" }}>KayÄ±t ol</Text>
             </Pressable>
         </View>
     );

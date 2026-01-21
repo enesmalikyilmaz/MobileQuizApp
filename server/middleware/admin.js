@@ -1,10 +1,10 @@
-const User = require("../models/User");
+ï»¿const User = require("../models/User");
 
 async function adminRequired(req, res, next) {
     try {
         const user = await User.findById(req.user.userId);
         if (!user) {
-            return res.status(401).json({ message: "Kullanıcı yok" });
+            return res.status(401).json({ message: "KullanÄ±cÄ± yok" });
         }
 
         if (!user.isAdmin) {
@@ -14,7 +14,7 @@ async function adminRequired(req, res, next) {
         next();
     } catch (err) {
         console.error("adminRequired error:", err);
-        res.status(500).json({ message: "Yetki kontrolü hatası" });
+        res.status(500).json({ message: "Yetki kontrolÃ¼ hatasÄ±" });
     }
 }
 

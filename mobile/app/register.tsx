@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable } from "react-native";
+ï»¿import { View, Text, TextInput, Pressable } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { postJson } from "../src/services/api";
@@ -26,7 +26,7 @@ export default function Register() {
             <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Ýsim"
+                placeholder="Ä°sim"
                 style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 10 }}
             />
 
@@ -41,7 +41,7 @@ export default function Register() {
             <TextInput
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Þifre"
+                placeholder="Åžifre"
                 secureTextEntry
                 style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 10 }}
             />
@@ -49,11 +49,11 @@ export default function Register() {
             {!!msg && <Text style={{ color: "red", marginBottom: 10 }}>{msg}</Text>}
 
             <Pressable onPress={onRegister} style={{ padding: 12, backgroundColor: "#16a34a", borderRadius: 8 }}>
-                <Text style={{ color: "white", textAlign: "center" }}>Kayýt Ol</Text>
+                <Text style={{ color: "white", textAlign: "center" }}>KayÄ±t Ol</Text>
             </Pressable>
 
             <Pressable onPress={() => router.replace("/login")} style={{ padding: 12, marginTop: 10 }}>
-                <Text style={{ textAlign: "center" }}>Giriþe dön</Text>
+                <Text style={{ textAlign: "center" }}>GiriÅŸe dÃ¶n</Text>
             </Pressable>
         </View>
     );

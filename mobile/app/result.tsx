@@ -1,56 +1,55 @@
-import { View, Text, Pressable } from "react-native";
+﻿import { View, Text, Pressable } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 
 export default function Result() {
     const params = useLocalSearchParams();
     const room = (params.room as string) || "";
-    const scoresJson = (params.scores as string) || "[]";
 
-    let scores: { id: string; name: string; score: number }[] = [];
+    let scores: any[] = [];
     try {
-        scores = JSON.parse(scoresJson);
+        scores = JSON.parse((params.scores as string) || "[]");
     } catch {
         scores = [];
     }
 
-    return (
-        <View style={{ flex: 1, padding: 24, backgroundColor: "white", justifyContent: "center" }}>
-            <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>
-                Sonu�lar
-            </Text>
+    // garanti sıralama
+    scores.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-            <Text style={{ fontSize: 12, marginBottom: 12 }}>
-                Oda: {room}
-            </Text>
+    return (
+        <View style={{ flex: 1, padding: 24, backgroundColor: "white" }}>
+            <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 8 }}>Sonuçlar</Text>
+            <Text style={{ fontSize: 12, marginBottom: 16 }}>Oda: {room}</Text>
 
             {scores.length === 0 ? (
-                <Text>Skor bulunamad�.</Text>
+                <Text>Skor verisi yok.</Text>
             ) : (
-                <View style={{ marginBottom: 16 }}>
-                    {scores.map((s, idx) => (
-                        <Text key={s.id} style={{ fontSize: 16, marginBottom: 6 }}>
-                            {idx + 1}. {s.name} � {s.score}
-                        </Text>
+                <View style={{ marginBottom: 18 }}>
+                    {scores.map((s, i) => (
+                        <View
+                            key={s.id || i}
+                            style={{
+                                padding: 12,
+                                borderWidth: 1,
+                                borderColor: "#ddd",
+                                borderRadius: 10,
+                                marginBottom: 8,
+                            }}
+                        >
+                            <Text style={{ fontWeight: "700" }}>
+                                {i === 0 ? "🥇 " : i === 1 ? "🥈 " : i === 2 ? "🥉 " : ""}
+                                {i + 1}. {s.name}
+                            </Text>
+                            <Text>Skor: {s.score}</Text>
+                        </View>
                     ))}
                 </View>
             )}
 
             <Pressable
-                onPress={() => router.replace("/lobby")}
-                style={{ padding: 12, backgroundColor: "#16a34a", borderRadius: 8, marginBottom: 10 }}
-            >
-                <Text style={{ color: "white", textAlign: "center" }}>
-                    Lobby'ye D�n
-                </Text>
-            </Pressable>
-
-            <Pressable
                 onPress={() => router.replace("/(tabs)")}
-                style={{ padding: 12, backgroundColor: "#6b7280", borderRadius: 8 }}
+                style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8 }}
             >
-                <Text style={{ color: "white", textAlign: "center" }}>
-                    Ana Sayfa
-                </Text>
+                <Text style={{ color: "white", textAlign: "center" }}>Home’a dön</Text>
             </Pressable>
         </View>
     );

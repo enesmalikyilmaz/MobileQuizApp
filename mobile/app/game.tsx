@@ -10,6 +10,7 @@ type Q = {
     index: number;
     total: number;
     seconds?: number; // server gönderiyor: 30
+    startedAt?: number; 
 };
 
 type ScoreItem = { id: string; name: string; score: number };
@@ -17,39 +18,42 @@ type ScoreItem = { id: string; name: string; score: number };
 export default function Game() {
     const params = useLocalSearchParams();
     const room = (params.room as string) || "";
-    const hostId = (params.hostId as string) || "";
+    const [hostId, setHostId] = useState<string>("");
 
     const [answered, setAnswered] = useState(false);
     const [question, setQuestion] = useState<Q | null>(null);
     const [scores, setScores] = useState<ScoreItem[]>([]);
     const [msg, setMsg] = useState("");
     const [timeLeft, setTimeLeft] = useState(30);
+    const [isEliminated, setIsEliminated] = useState(false);
+    const [eliminateMsg, setEliminateMsg] = useState("");
+    const [deadlineMs, setDeadlineMs] = useState<number>(0);
 
-    const [mySocketId, setMySocketId] = useState<string>("");
+
+    const [mySocketId, setMySocketId] = useState("");
 
     // Timer: her saniye düş
     useEffect(() => {
-        if (!question) return;
+        if (!deadlineMs) return;
         if (answered) return;
-        if (timeLeft <= 0) return;
+        if (isEliminated) return;
 
-        const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-        return () => clearTimeout(t);
-    }, [timeLeft, question, answered]);
+        const t = setInterval(() => {
+            const left = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
+            setTimeLeft(left);
 
-    // Süre bittiğinde server'a bildir ve kilitle
-    useEffect(() => {
-        if (!question) return;
+            if (left <= 0) {
+                setAnswered(true);
+                setMsg(" Süre bitti!");
+                clearInterval(t);
+            }
+        }, 250);
 
-        if (timeLeft <= 0 && !answered) {
-            setAnswered(true);
-            setMsg("⏰ Süre bitti!");
+        return () => clearInterval(t);
+    }, [deadlineMs, answered , isEliminated]);
 
-            // server'a timeUp gönder (elenme kuralı için)
-            const s = connectSocket();
-            s.emit("timeUp", { roomCode: room, questionId: question.id });
-        }
-    }, [timeLeft, question, answered, room]);
+
+    
 
     // Socket eventleri
     useEffect(() => {
@@ -60,10 +64,25 @@ export default function Game() {
             setQuestion(q);
             setMsg("");
             setAnswered(false);
+            setIsEliminated(false);
+            setEliminateMsg("");
 
-            const secs = typeof q?.seconds === "number" ? q.seconds : 30;
-            setTimeLeft(secs);
+
+            const startedAt = Number(q.startedAt || Date.now());
+            const sec = Number(q.seconds || 30);
+
+            const deadline = startedAt + sec * 1000;
+            setDeadlineMs(deadline);
+
+            const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            setTimeLeft(left);
         };
+
+        const onPlayersUpdate = (payload: any) => {
+            setHostId(payload?.hostId || "");
+        };
+
+
 
         const onScoreUpdate = (list: any[]) => setScores(list);
 
@@ -88,6 +107,9 @@ export default function Game() {
         s.on("gameFinished", onFinished);
         s.on("errorMsg", onErrorMsg);
         s.on("eliminated", onEliminated);
+        s.on("playersUpdate", onPlayersUpdate);
+
+
 
         return () => {
             s.off("question", onQuestion);
@@ -95,6 +117,7 @@ export default function Game() {
             s.off("gameFinished", onFinished);
             s.off("errorMsg", onErrorMsg);
             s.off("eliminated", onEliminated);
+            s.off("playersUpdate", onPlayersUpdate);
         };
     }, [room]);
 
@@ -126,6 +149,8 @@ export default function Game() {
             <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 8 }}>Game</Text>
             <Text style={{ fontSize: 12, marginBottom: 12 }}>Oda: {room}</Text>
 
+
+
             {question ? (
                 <View style={{ marginBottom: 16 }}>
                     <Text style={{ fontSize: 14, marginBottom: 6 }}>
@@ -140,17 +165,29 @@ export default function Game() {
                         {question.text}
                     </Text>
 
+                    {isEliminated ? (
+                        <View style={{ padding: 12, borderWidth: 1, borderColor: "#ef4444", borderRadius: 10, marginBottom: 10 }}>
+                            <Text style={{ fontWeight: "700", color: "#ef4444", fontSize: 16 }}>ELENDİN ❌</Text>
+                            <Text style={{ marginTop: 4 }}>{eliminateMsg}</Text>
+                            <Text style={{ marginTop: 6, color: "#6b7280" }}>Diğer oyuncuları bekliyorsun…</Text>
+                        </View>
+                    ) : null}
+
+
                     {question.choices.map((c, i) => (
                         <Pressable
                             key={i}
-                            onPress={() => answer(i)}
+                            onPress={() => {
+                                if (isEliminated) return;
+                                answer(i);
+                            }}
                             style={{
                                 padding: 12,
                                 borderWidth: 1,
                                 borderColor: "#ddd",
                                 borderRadius: 8,
                                 marginBottom: 8,
-                                opacity: answered ? 0.6 : 1,
+                                opacity: (answered || isEliminated) ? 0.4 : 1
                             }}
                         >
                             <Text>{c}</Text>
@@ -159,7 +196,7 @@ export default function Game() {
 
                     {!!msg && <Text style={{ marginTop: 6 }}>{msg}</Text>}
 
-                    {isHost && (
+                    {hostId && mySocketId && hostId === mySocketId && !isEliminated && (
                         <Pressable
                             onPress={next}
                             style={{ padding: 12, backgroundColor: "#2563eb", borderRadius: 8, marginTop: 10 }}
@@ -171,6 +208,8 @@ export default function Game() {
             ) : (
                 <Text>Henüz soru gelmedi... (Host başlatınca gelir)</Text>
             )}
+
+
 
             <View style={{ marginTop: 10 }}>
                 <Text style={{ fontWeight: "700", marginBottom: 6 }}>Skorlar</Text>
