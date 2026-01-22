@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get("/", authRequired, async (req, res) => {
     const user = await User.findById(req.user.userId).select(
-        "name email city country avatarUrl isAdmin createdAt"
+        "name email city country isAdmin createdAt"
     );
     if (!user) return res.status(404).json({ message: "User yok" });
 
@@ -37,7 +37,7 @@ router.get("/", authRequired, async (req, res) => {
 
 router.put("/", authRequired, async (req, res) => {
     try {
-        const { city, country, avatarUrl } = req.body;
+        const { city, country } = req.body;
 
         const user = await User.findById(req.user.userId);
         if (!user) {
@@ -46,7 +46,6 @@ router.put("/", authRequired, async (req, res) => {
 
         if (city !== undefined) user.city = city;
         if (country !== undefined) user.country = country;
-        if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
 
         await user.save();
 
@@ -57,9 +56,7 @@ router.put("/", authRequired, async (req, res) => {
                 email: user.email,
                 city: user.city,
                 country: user.country,
-                avatarUrl: user.avatarUrl,
                 stats: user.stats,
-                achievements: user.achievements,
             },
         });
     } catch (err) {

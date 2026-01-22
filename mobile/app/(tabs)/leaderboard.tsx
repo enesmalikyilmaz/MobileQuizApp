@@ -27,7 +27,7 @@ export default function Leaderboard() {
     return (
         <View style={{ flex: 1, padding: 16, backgroundColor: "white" }}>
             <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 10 }}>
-                Leaderboard
+                Lider Tablosu
             </Text>
 
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
@@ -35,21 +35,21 @@ export default function Leaderboard() {
                     onPress={() => setMode("all-time")}
                     style={{ padding: 10, backgroundColor: mode === "all-time" ? "#2563eb" : "#e5e7eb", borderRadius: 8 }}
                 >
-                    <Text style={{ color: mode === "all-time" ? "white" : "black" }}>All-time</Text>
+                    <Text style={{ color: mode === "all-time" ? "white" : "black" }}>Tüm Zamanlar</Text>
                 </Pressable>
 
                 <Pressable
                     onPress={() => setMode("weekly")}
                     style={{ padding: 10, backgroundColor: mode === "weekly" ? "#2563eb" : "#e5e7eb", borderRadius: 8 }}
                 >
-                    <Text style={{ color: mode === "weekly" ? "white" : "black" }}>Weekly</Text>
+                    <Text style={{ color: mode === "weekly" ? "white" : "black" }}>Haftalık</Text>
                 </Pressable>
 
                 <Pressable
                     onPress={() => setMode("monthly")}
                     style={{ padding: 10, backgroundColor: mode === "monthly" ? "#2563eb" : "#e5e7eb", borderRadius: 8 }}
                 >
-                    <Text style={{ color: mode === "monthly" ? "white" : "black" }}>Monthly</Text>
+                    <Text style={{ color: mode === "monthly" ? "white" : "black" }}>Aylık</Text>
                 </Pressable>
             </View>
 

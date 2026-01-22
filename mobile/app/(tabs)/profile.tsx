@@ -11,9 +11,7 @@ type MeResponse = {
         isAdmin?: boolean;
         city?: string;
         country?: string;
-        avatarUrl?: string;
         stats?: { totalGames?: number; totalScore?: number; bestScore?: number };
-        achievements?: string[];
         createdAt?: string;
     };
 };
@@ -29,10 +27,8 @@ export default function Profile() {
 
     const [city, setCity] = useState("");
     const [country, setCountry] = useState("");
-    const [avatarUrl, setAvatarUrl] = useState("");
 
     const [stats, setStats] = useState({ totalGames: 0, totalScore: 0, bestScore: 0 });
-    const [achievements, setAchievements] = useState<string[]>([]);
     const [msg, setMsg] = useState("");
     const [isAdmin, setIsAdmin] = useState(false);
 
@@ -64,7 +60,6 @@ export default function Profile() {
 
             setCity(data.user.city || "");
             setCountry(data.user.country || "");
-            setAvatarUrl(data.user.avatarUrl || "");
 
             setStats({
                 totalGames: data.user.stats?.totalGames || 0,
@@ -72,7 +67,6 @@ export default function Profile() {
                 bestScore: data.user.stats?.bestScore || 0,
             });
 
-            setAchievements(data.user.achievements || []);
         } catch (e: any) {
             const m = e?.message || String(e);
             let clean = m;
@@ -105,7 +99,7 @@ export default function Profile() {
                 return;
             }
 
-            await putJson("/me", { city, country, avatarUrl }, token);
+            await putJson("/me", { city, country }, token);
             setMsg("✅ Profil kaydedildi");
         } catch (e: any) {
             const m = e?.message || String(e);
@@ -183,25 +177,10 @@ export default function Profile() {
                                 style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 10 }}
                             />
 
-                            <Text style={{ fontWeight: "700", marginBottom: 6 }}>Avatar URL</Text>
-                            <TextInput
-                                value={avatarUrl}
-                                onChangeText={setAvatarUrl}
-                                placeholder="https://..."
-                                style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 14 }}
-                            />
-
                             <Text style={{ fontWeight: "700", marginBottom: 6 }}>İstatistikler</Text>
                             <Text>Toplam oyun: {stats.totalGames}</Text>
                             <Text>Toplam skor: {stats.totalScore}</Text>
                             <Text>En iyi skor: {stats.bestScore}</Text>
-
-                            <Text style={{ fontWeight: "700", marginTop: 14, marginBottom: 6 }}>Başarılar</Text>
-                            {achievements.length === 0 ? (
-                                <Text style={{ color: "#6b7280" }}>Henüz başarı yok.</Text>
-                            ) : (
-                                achievements.map((a, i) => <Text key={i}>• {a}</Text>)
-                            )}
 
                             {isAdmin ? (
                                 <Pressable

@@ -10,7 +10,9 @@ export default function AdminQuizCreate() {
     const [title, setTitle] = useState("Yeni Quiz");
     const [description, setDescription] = useState("");
     const [msg, setMsg] = useState("");
-    const [category, setCategory] = useState("Genel Kültür");
+    const [category, setCategory] = useState("Genel");
+    const ADMIN_CATEGORIES = ["Genel", "Genel Kültür", "Bilim", "Tarih", "Spor"];
+
 
 
     const [questions, setQuestions] = useState<Q[]>([
@@ -103,12 +105,28 @@ export default function AdminQuizCreate() {
             />
 
             <Text style={{ fontWeight: "700", marginBottom: 6 }}>Kategori</Text>
-            <TextInput
-                value={category}
-                onChangeText={setCategory}
-                placeholder="Genel Kültür / Bilim / Tarih / Spor"
-                style={{ borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 8, marginBottom: 10 }}
-            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                {ADMIN_CATEGORIES.map((c) => (
+                    <Pressable
+                        key={c}
+                        onPress={() => setCategory(c)}
+                        style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 14,
+                            borderRadius: 999,
+                            borderWidth: 1,
+                            borderColor: category === c ? "#2563eb" : "#e5e7eb",
+                            backgroundColor: category === c ? "#2563eb" : "white",
+                            marginRight: 8,
+                        }}
+                    >
+                        <Text style={{ color: category === c ? "white" : "#111827", fontWeight: "700" }}>
+                            {c}
+                        </Text>
+                    </Pressable>
+                ))}
+            </ScrollView>
+
 
 
             <Text style={{ fontWeight: "700", marginBottom: 6 }}>Açıklama</Text>

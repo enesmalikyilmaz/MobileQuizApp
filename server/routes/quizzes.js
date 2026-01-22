@@ -10,14 +10,25 @@ router.get("/", async (req, res) => {
     const { category } = req.query;
 
     const filter = {};
-    if (category && String(category).trim()) {
-        filter.category = String(category).trim();
+    if (category && String(category).trim() && String(category).trim().toLowerCase() !== "hepsi") {
+        const cat = String(category).trim();
+        filter.category = { $regex: new RegExp(`^${escapeRegex(cat)}$`, "i") };
     }
 
     const list = await Quiz.find(filter, { title: 1, description: 1, category: 1 })
         .sort({ createdAt: -1 });
 
     res.json(list);
+});
+
+// routes/quizzes.js 
+router.get("/meta/categories", async (req, res) => {
+    const cats = await Quiz.distinct("category");
+    const clean = (cats || [])
+        .map(c => String(c || "").trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "tr"));
+    res.json(clean);
 });
 
 

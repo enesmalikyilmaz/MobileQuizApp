@@ -24,8 +24,6 @@ export default function RootLayout() {
         };
 
         boot();
-        // sadece ilk açılışta çalışsın
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

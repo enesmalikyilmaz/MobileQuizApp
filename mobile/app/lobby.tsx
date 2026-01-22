@@ -133,7 +133,6 @@ export default function Lobby() {
         }
 
         const s = connectSocket();
-        console.log("START GAME EMIT ->", { roomCode: rc, quizId });
 
 
         s.emit("startGame", { roomCode: rc });

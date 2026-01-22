@@ -81,12 +81,6 @@ const io = new Server(server, {
 
 
 const rooms = new Map();
-// roomCode -> {
-//   players: [{id,name}],
-//   scores: { [socketId]: number },
-//   started: boolean,
-//   qIndex: number
-// }
 
 io.on("connection", (socket) => {
     console.log("connected", socket.id);
@@ -544,7 +538,7 @@ function sendQuestion(io, roomCode, room) {
     //  30sn sonra otomatik ilerleme
     room.timer = setTimeout(async () => {
         try {
-            // oyun bitmişse tekrar işlem yapma (double finalize engeli)
+            // oyun bitmişse tekrar işlem yapma (double final engeli)
             if (!room.started) return;
             if (room.finished) return;
 
@@ -624,7 +618,6 @@ function getAliveCount(room) {
         return ids.filter(id => elim[id] !== true).length;
     }
 
-    // fallback: players
     return (room.players || []).filter(p => (room.eliminated?.[p.id] !== true)).length;
 }
 
@@ -688,7 +681,7 @@ async function finalizeGame(io, roomCode, room) {
 
         return {
             id: p.id,
-            userId: uid,                 // ✅ kritik
+            userId: uid,                 
             name: p.name || st.name || "Player",
             score: Number(room.scores[p.id] || st.score || 0),
             correctCount: Number(st.correctCount || 0),
@@ -702,7 +695,7 @@ async function finalizeGame(io, roomCode, room) {
     const top = scoresDetailed[0] || null;
     const winner = top ? { id: top.id, name: top.name, score: top.score } : null;
 
-    //  totalScore güncelle (userId varsa)
+    //  totalScore güncelle 
     try {
         const User = require("./models/User");
         for (const s of scoresDetailed) {

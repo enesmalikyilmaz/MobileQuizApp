@@ -26,7 +26,7 @@ export default function Login() {
 
     return (
         <View style={{ flex: 1, padding: 24, justifyContent: "center", backgroundColor: "white" }}>
-            <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>Login</Text>
+            <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 12 }}>Giriş Yap</Text>
 
             <TextInput
                 value={email}

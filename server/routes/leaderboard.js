@@ -72,7 +72,7 @@ router.get("/:period", async (req, res) => {
         { $match: { createdAt: { $gte: from } } },
         { $unwind: "$scores" },
 
-        // userId'siz olanları ayrı ele alacağız; önce userId olanları topla:
+        // userId'siz olanları ayrı ele alacağız; önce userId olanları toplayalım
         { $match: { "scores.userId": { $ne: null } } },
 
         {

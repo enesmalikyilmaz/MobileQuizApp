@@ -14,11 +14,7 @@ export async function getJson<T>(path: string, token?: string): Promise<T> {
     return text ? JSON.parse(text) : ({} as T);
 }
 
-export async function postJson<T>(
-    path: string,
-    body: any,
-    token?: string
-): Promise<T> {
+export async function postJson<T>(path: string, body: any, token?: string): Promise<T> {
     const resp = await fetch(`${API_BASE}${path}`, {
         method: "POST",
         headers: {
@@ -61,4 +57,3 @@ export async function deleteJson<T>(path: string, token?: string): Promise<T> {
     if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
     return text ? JSON.parse(text) : ({} as T);
 }
-

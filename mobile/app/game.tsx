@@ -9,15 +9,16 @@ type Q = {
     choices: string[];
     index: number;
     total: number;
-    seconds?: number; // server gönderiyor: 30
+    seconds?: number; 
     startedAt?: number; 
 };
 
 type ScoreItem = { id: string; name: string; score: number };
 
 export default function Game() {
-    const params = useLocalSearchParams();
-    const room = (params.room as string) || "";
+    const params = useLocalSearchParams<{ room?: string }>();
+    const room = params.room ?? "";
+
     const [hostId, setHostId] = useState<string>("");
 
     const [answered, setAnswered] = useState(false);
@@ -88,19 +89,26 @@ export default function Game() {
 
         const onFinished = (payload: any) => {
             const finalScores = payload?.scores || [];
-            const url =
-                `/result?room=${encodeURIComponent(room)}` +
-                `&scores=${encodeURIComponent(JSON.stringify(finalScores))}`;
-            router.replace(url);
+            router.replace({
+                pathname: "/result",
+                params: {
+                    room,
+                    scores: JSON.stringify(finalScores),
+                },
+            } as any);
+
         };
 
         const onErrorMsg = (p: any) => setMsg(p?.message || "Hata oluştu");
 
-        // Server yanlışta/süre dolunca bunu yolluyor
+        // Server yanlışta veya süre dolunca bunu yolluyor
         const onEliminated = (p: any) => {
+            setIsEliminated(true);
+            setEliminateMsg(p?.message || "Elendin.");
             setAnswered(true);
             setMsg(p?.message || "Elendin.");
         };
+
 
         s.on("question", onQuestion);
         s.on("scoreUpdate", onScoreUpdate);
